@@ -21,9 +21,8 @@ shinyServer(function(input, output, session) {
         paste('USmapCrudeDeathRate','png', sep = ".")
       },
       content <- function(file) {
-        png(file)
-        df1 <- data()
-        plot <- usmap.meanCDR+
+       png(file)
+        plot <-  usmap.meanCDR+
           theme(plot.title = element_text(size=20, face="bold.italic"),
                 panel.grid = element_blank(),
                 axis.title = element_blank(),axis.text = element_blank())+
@@ -89,9 +88,41 @@ shinyServer(function(input, output, session) {
     else{graceDeath}
   })
   
- 
+  output$downPlotYear1<-downloadHandler(
+    filename <- function() {
+      paste('sexDeath','png', sep = ".")
+    },
+    content <- function(file) {
+      png(file)
+       sexDeath <- getData() %>% filter(`Race and Hispanic Origin`=="All Races-All Origins"
+                                       & `Age Group`!="All Ages"& Sex!="Both Sexes")
+      #create plot
+       gsexDeath<- ggplot(data=sexDeath,aes(x=`Age Group`,y=Deaths,fill=Sex))+
+        geom_bar(stat="identity")+ggtitle("Barplot of Deaths by Sex and Age Group in Year ",input$year)
+       ifelse(input$gray,print(gsexDeath+theme.bw),print(gsexDeath))
+      dev.off()
+    },
+    contentType = "image/png"
+  )
   
- 
+  output$downPlotYear2<-downloadHandler(
+    filename <- function() {
+      paste('raceDeath','png', sep = ".")
+    },
+    content <- function(file) {
+      png(file)
+      raceDeath<- getData() %>% filter(`Race and Hispanic Origin`!="All Races-All Origins"
+                                       & `Age Group`!="All Ages"& Sex=="Both Sexes")
+      #create plot
+      graceDeath <-ggplot(data=raceDeath,aes(x=`Age Group`,y=Deaths,fill=`Race and Hispanic Origin`))+
+        geom_bar(stat="identity")+
+        ggtitle("Barplot of Deaths by Race and Hispanic Origin and Age Group in Year ",input$year)
+      
+      ifelse(input$gray,print(graceDeath+theme.bw),print(graceDeath))
+      dev.off()
+    },
+    contentType = "image/png"
+  )
   #tab 2 bottom left plot
   getData2 <- reactive({
     newData <- USdata %>% filter(`Age Group` == input$ageGroup)
@@ -102,20 +133,36 @@ shinyServer(function(input, output, session) {
     g <- ggplot(newData, aes(x = Population, y = Deaths))+ geom_point(size = input$size)
     #create plot
     if(input$regline){
-      g+geom_smooth(method='lm',formula=y~x)
+      g+geom_smooth(method='lm',formula=y~x) #add a regression line
       
     }else{
       g
     }
   })
   
+  output$downPlotAge<-downloadHandler(
+    filename <- function() {
+      paste('PopvsDeath','png', sep = ".")
+    },
+    content <- function(file) {
+      png(file)
+      newData <- getData2()
+      g <- ggplot(newData, aes(x = Population, y = Deaths))+ geom_point(size = input$size)
+      
+      ifelse(input$regline,print(g+geom_smooth(method='lm',formula=y~x)),print(g))
+      
+      dev.off()
+    },
+    contentType = "image/png"
+  )
+  
   
   #tab 2 bottom right table
   output$lmEq <- renderUI({
-    withMathJax(helpText('Simple Linear Regression Equation  $$\\beta$$'))
+    withMathJax(helpText('Simple Linear Regression Equation  $$Death=\\beta_0+(\\beta_1)Population$$'))
   })
   
-    #add a regression line
+    
   
   #Click to download data as csv
   output$stateDataDwld<-downloadHandler(
@@ -127,7 +174,7 @@ shinyServer(function(input, output, session) {
     }
   )
   
-  #brush and plot
+  #brush and click
   output$a <- renderPrint({
       newdata<-getData2()
     brushedPoints(newdata, input$plot_brush)
@@ -154,50 +201,57 @@ shinyServer(function(input, output, session) {
        g + geom_point(size = input$sizeDeath,colour="#FF9999")
      } else {g}
    })
-   output$brush_info <- renderText({
-     cat("input$plot_brush:\n")
-     str(input$plot_brush)
-   })
+  
+  
+   
+   #Click to download plot
+   output$deathTrend<-downloadHandler(
+     filename <- function() {
+       paste('DeathTrend',input$stateName,'png', sep = ".")
+     },
+     content <- function(file) {
+       png(file)
+       trenddata <- getStateData.State()
+       plot <- ggplot(trenddata, aes(x = Year, y = Deaths))+geom_line(colour="#FF9999")+ geom_point(size = input$sizeDeath,colour="#FF9999")
+       print(plot)
+       dev.off()
+     },
+     contentType = "image/png"
+   )
+   
+  
+  
+  # #top- CDR map
+  # plotMap <- ggplot(usstates, aes(x = long, y = lat, group = group)) + 
+  #   geom_polygon(fill = "white", color = "black")
+  # plottrend <- ggplot(StateData, aes(x = Year, y = 'Crude Death Rate',group=State),xlim=c(1998,2020)) +geom_line()  
+  #   
+  
+ 
+  # output$USmap<-renderPlot({
+  #   
+  #   StateData.year<-getDataState() 
+  #   StateData.year$full <- StateData.year$State
+  #   total.year<- merge(usstates, StateData.year, by="full")
+  # 
+  #   #map
+  #   usmap.CDR.year <- 
+  #     ggplot() + 
+  #     geom_polygon(data=total.year,
+  #                  aes(x=long, y=lat, group = group,
+  #                      fill = factor(as.factor(total.year$'Crude Death Rate')),color="white"))+
+  #     theme(panel.grid = element_blank(),axis.title = element_blank(),
+  #           axis.text = element_blank(),legend.position="none")
+  #   
+  #   usmap.CDR.year
+  # })
+
+  #Bottom table
   
   #State data
   getDataState <- reactive({
     newData <- StateData %>% filter(Year == input$stateYear)
   })
-  
-  #top- CDR map
-  plotMap <- ggplot(usstates, aes(x = long, y = lat, group = group)) + 
-    geom_polygon(fill = "white", color = "black")
-  plottrend <- ggplot(StateData, aes(x = Year, y = 'Crude Death Rate',group=State),xlim=c(1998,2020)) +geom_line()  
-    
-  
-  #Bottom-right plot
-  output$trendPlot <- renderPlot({
-     trend<-ggplot(data=StateData, x='Crude Death Rate', y=Year)+geom_line()
-  })
-  
-  
-  output$USmap<-renderPlot({
-    
-    StateData.year<-getDataState() 
-    StateData.year$full <- StateData.year$State
-    total.year<- merge(usstates, StateData.year, by="full")
-  
-    #map
-    usmap.CDR.year <- 
-      ggplot() + 
-      geom_polygon(data=total.year,
-                   aes(x=long, y=lat, group = group,
-                       fill = factor(as.factor(total.year$'Crude Death Rate')),color="white"))+
-      theme(panel.grid = element_blank(),axis.title = element_blank(),
-            axis.text = element_blank(),legend.position="none")
-    
-    usmap.CDR.year
-  })
-  
-
-  
-
-  #Bottom-left table
 
    #table
   output$stateTable <- DT::renderDataTable({
@@ -206,6 +260,8 @@ shinyServer(function(input, output, session) {
                                  input$stateYear, " at State-level"),
                   options = list(scrollX = TRUE))
   })
+  
+  
   
   #Click to download data as csv
   output$stateDataDwld<-downloadHandler(
@@ -217,18 +273,18 @@ shinyServer(function(input, output, session) {
     }
   )
   
-  # plot after click
-  observeEvent(input$clickMap, {
-    xClick <- input$clickMap$x
-    yClick <- input$clickMap$y
-    state <- which_state(Total.meanCDR, xClick, yClick)
-    output$USmap <- renderPlot(
-      usmap.meanCDR + 
-        geom_polygon(data = Total.meanCDR[Total.meanCDR$full == state,], fill = "yellow") +
-        annotate("text", x = xClick, y = yClick, label = state, color = "red")
-    )
-    
-  })
+  # # plot after click
+  # observeEvent(input$clickMap, {
+  #   xClick <- input$clickMap$x
+  #   yClick <- input$clickMap$y
+  #   state <- which_state(Total.meanCDR, xClick, yClick)
+  #   output$USmap <- renderPlot(
+  #     usmap.meanCDR + 
+  #       geom_polygon(data = Total.meanCDR[Total.meanCDR$full == state,], fill = "yellow") +
+  #       annotate("text", x = xClick, y = yClick, label = state, color = "red")
+  #   )
+  #   
+  # })
   
   ##Bottom information
   output$bottom1<-renderText({

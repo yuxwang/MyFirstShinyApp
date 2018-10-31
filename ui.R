@@ -57,20 +57,25 @@ shinyUI(
                                 selectizeInput("year", "Year", selected = "1999", 
                                                choices = levels(as.factor(USdata$Year))),
                                 br(),
-                                checkboxInput("gray", h5("Black and White Figures")),
-                                downloadButton(outputId = "downPlot.year", label = "Download the Plot")
+                                checkboxInput("gray", h5("Black and White Figures"))
                                 ),
                               
                               # Show outputs
                               mainPanel(tabsetPanel
                                          (type = "tabs",
                                               tabPanel("Death by Sex",
-                                                       plotOutput("sexDeath")),
+                                                       plotOutput("sexDeath"),
+                                                       downloadButton(outputId = "downPlotYear1", 
+                                                                      label = "Download the Plot")),
                                               tabPanel("Death by Race", 
-                                                       plotOutput("raceDeath"))
+                                                       plotOutput("raceDeath"),
+                                                       downloadButton(outputId = "downPlotYear2", 
+                                                                      label = "Download the Plot"))
                                            ))
                                         )),
-                            
+                            br(),
+                            br(),
+                            hr(),
                             #row 2
                             fluidRow(sidebarLayout(
                               sidebarPanel(
@@ -83,7 +88,7 @@ shinyUI(
                                 checkboxInput("regline", h5("Add a Simple Linear Regression Line")),
                                 withMathJax(),
                                 uiOutput('lmEq'),
-                                downloadButton(outputId = "downPlot.age", label = "Download the Plot")
+                                downloadButton(outputId = "downPlotAge", label = "Download the Plot")
                               ),
                               
                               # Show outputs
@@ -139,15 +144,11 @@ shinyUI(
                            selectizeInput("stateYear", "Select Year", selected = "1999", 
                                           choices = levels(as.factor(StateData$Year))),
                            br(),
-                           downloadButton("stateDataDwld",label = "Click to Download Data"),
-                           br(),
-                           br(),
-                           downloadButton(outputId = "deathUSmap", label = "Download the Map")
-                                        ),
+                           downloadButton("stateDataDwld",label = "Click to Download Data")),
                          # Show map outputs
-                         mainPanel(DT::dataTableOutput("stateTable"),
-                                   plotOutput("USmap",click = "clickMap", 
-                                              width = 500, height = 300)
+                         mainPanel(DT::dataTableOutput("stateTable")
+                                   # ,plotOutput("USmap",click = "clickMap", 
+                                   #            width = 500, height = 300)
                              )))),
   br(),
   hr(),
