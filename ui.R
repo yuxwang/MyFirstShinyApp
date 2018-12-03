@@ -98,6 +98,7 @@ shinyUI(
                                mainPanel(plotOutput("PopvsDeathAge",click = "plot_click",
                                                    brush = brushOpts(id = "plot_brush")),
                                          conditionalPanel(condition = "input.regline",
+                                                          h3("Summary of Regression fit"),
                                                           verbatimTextOutput("modelSum")),
                                         h3("Info of Brushed Points"),
                                         verbatimTextOutput("a"),

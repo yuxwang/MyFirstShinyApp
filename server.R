@@ -293,7 +293,16 @@ shinyServer(function(input, output, session) {
     withMathJax(helpText('Simple Linear Regression Equation  $$Death=\\beta_0+(\\beta_1)Population$$'))
   })
   
-    
+ #model summary output
+  output$modelSum<-renderPrint({
+    newData <- getData2()
+    #slm fit
+    slmfit<-lm(Deaths~Population,data=newData)
+    #quard fit
+    quardfit<-lm(Deaths~Population+I(Population^2),data=newData)
+    if(input$regMethod=="Basic Simple Linear Regression"){
+      summary(slmfit)}else{summary(quardfit)}
+  })
   
   #Click to download data as csv
   output$stateDataDwld<-downloadHandler(
