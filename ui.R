@@ -19,11 +19,16 @@ shinyUI(
                             br(),
                             navlistPanel(
                               tabPanel("About App",
-                                       tags$style(type="text/css",
-                                                  "#aboutapp{height: 200px;
-                                                  "),
-                                       textOutput("aboutapp"),
-                                       plotOutput("avgCDR"),
+                                       textOutput("aboutapp"),br(),
+                                       h4("National-level Analysis"),
+                                       textOutput("aboutapp1"),br(),
+                                       h4("State-level Analysis"),
+                                       textOutput("aboutapp2"),
+                                       br(),
+                                       br(),
+                                       hr(),
+                                       plotOutput("avgCDR")%>%
+                                         withSpinner(),
                                        downloadButton(outputId = "downMap", label = "Download the Map")
                                       ),
                               tabPanel("Data Source",
@@ -64,11 +69,13 @@ shinyUI(
                                mainPanel(tabsetPanel
                                          (type = "tabs",
                                               tabPanel("Death by Sex",
-                                                       plotOutput("sexDeath"),
+                                                       plotOutput("sexDeath")%>%
+                                                         withSpinner(color="#e78752"),
                                                        downloadButton(outputId = "downPlotYear1", 
                                                                       label = "Download the Plot")),
                                               tabPanel("Death by Race", 
-                                                       plotOutput("raceDeath"),
+                                                       plotOutput("raceDeath")%>%
+                                                         withSpinner(color="#aae752"),
                                                        downloadButton(outputId = "downPlotYear2", 
                                                                       label = "Download the Plot"))))
                                         )),
@@ -90,13 +97,14 @@ shinyUI(
                                                                 choices = c("Basic Simple Linear Regression",
                                                                             "Polynomial Regression"),
                                                                 selected = "Basic Simple Linear Regression"),
-                                                 checkboxInput("pred", h5("Add CI and PI"))),
-                                withMathJax(),
-                                uiOutput('lmEq'),
+                                                 checkboxInput("pred", h5("Add CI and PI")),
+                                                 withMathJax(),
+                                                 uiOutput('lmEq')),
                                 downloadButton(outputId = "downPlotAge", label = "Download the Plot")),
                               # Show outputs
                                mainPanel(plotOutput("PopvsDeathAge",click = "plot_click",
-                                                   brush = brushOpts(id = "plot_brush")),
+                                                   brush = brushOpts(id = "plot_brush"))%>%
+                                           withSpinner(type=7),
                                          conditionalPanel(condition = "input.regline",
                                                           h3("Summary of Regression fit"),
                                                           verbatimTextOutput("modelSum")),
@@ -113,28 +121,32 @@ shinyUI(
                               sidebarLayout(
                                 sidebarPanel(
                                   h3("CART-Classification Tree Model for Crude Death Rate"),
-                                  textOutput("TreeModelDescp"),
-                                  checkboxGroupInput("TreeVariable", label = h5("Variables included in the model"), 
+                                  textOutput("TreeModelDescp1"),
+                                  textOutput("TreeModelDescp2"),
+                                  h4("Use mouse wheel to zoom-in or zoom-out"),br(),
+                                  checkboxGroupInput("TreeVariable", label = h4("Variables included in the model"), 
                                                      choices = c("Sex" = "Sex", "Age Group" = "Age",
                                                                  "Race and Hispanic Origin" ="Race",
                                                                  "Population"="Population"),
                                                      selected =c ("Sex","Age","Race","Population"))),
                                 # Show outputs
-                                mainPanel(visNetworkOutput("CrudeDeathTree"))
+                                mainPanel(visNetworkOutput("CrudeDeathTree")%>%
+                                            withSpinner(color="#0dc5c1"))
                               )),
                             br(),
                             br(),
                             hr(),
                             #row 4 add clustering
-                            fluidRow(column(12,h3("Clustering"),align="center",
+                            fluidRow(column(12,h3("Comparison of Clustering"),align="center",
                                         fluidRow(column(6,
                                                        h4("K-Means Cluster"),
-                                                       plotOutput("KMeansCluster"),
+                                                       plotOutput("KMeansCluster")%>% withSpinner(type=4),
                                                        downloadButton(outputId = "downPlotKCluster",
                                                                       label = "Download the Plot")),
                                                  column(6,
                                                        h4("Hierarchical Cluster"),
-                                                       plotOutput("HierarchicalCluster"),
+                                                       plotOutput("HierarchicalCluster")%>%
+                                                                  withSpinner(type=4),
                                                        downloadButton(outputId = "downPlotHirCluster", 
                                                                       label = "Download the Plot"))),
                                         br(),

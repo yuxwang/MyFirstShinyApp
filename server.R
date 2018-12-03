@@ -7,6 +7,12 @@ shinyServer(function(input, output, session) {
     output$aboutapp<-renderText({
     paste0("This app is an interactive shiny App. Figures presented in this App shows drug poisoning deaths at the national and state levels.","\n","\n","Data is analyzed on both national and state level. Results can be found under each navigation tabs on top.")
   })
+    output$aboutapp1<-renderText({
+      paste0("In National-level Analysis tab, number of deaths were analyzed in the upper two plots, and a classification tree model was fit for reclassified Crude Death Rate in the third plot. In the bottom plots, cluster using k-means and hierarchical methods were displayed.")
+    })
+    output$aboutapp2<-renderText({
+      paste0("In the State-level Analysis tab, Deaths trends can be visuliazed by States. Crude Death Rate by Drug Poisioning for each state in a specified year can be download and save to csv files.")
+    })
    #plot map
     output$avgCDR<-renderPlot({
       usmap.meanCDR+
@@ -132,9 +138,11 @@ shinyServer(function(input, output, session) {
   
  
   #tab 2 middle plot
-  output$TreeModelDescp<-renderText({
-    paste0("Crude Death rate was reclassified into 4 levels:","0-10, 10-20, 20-30, >30" )
-  })
+  output$TreeModelDescp1<-renderText({
+    paste("Crude Death rate was reclassified into 4 levels:")})
+  output$TreeModelDescp2<-renderText({
+    paste("0-10, 10-20, 20-30, >30")})
+ 
   
   gettressData <- reactive({newData <-USsub %>% select(CDlevel,input$TreeVariable)})
   
@@ -288,9 +296,15 @@ shinyServer(function(input, output, session) {
   )
   
   
-  #tab 2 bottom right table
+  #tab 2 linear regression
   output$lmEq <- renderUI({
+    if(input$regline){
+      if(input$regMethod=="Basic Simple Linear Regression"){
     withMathJax(helpText('Simple Linear Regression Equation  $$Death=\\beta_0+(\\beta_1)Population$$'))
+        }else{
+        withMathJax(helpText(
+          'Polynomial Regression Equation  $$Death=\\beta_0+(\\beta_1)Population+(\\beta_2)Population^2$$'))
+      }}
   })
   
  #model summary output

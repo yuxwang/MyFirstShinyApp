@@ -52,6 +52,13 @@ if (!require("ciTools")){
   install.packages("ciTools")
   library("ciTools")
 }
+
+#loading data
+if (!require("shinycssloaders")){
+  install.packages("shinycssloaders")
+  library("shinycssloaders")
+}
+
 ##global variables
 #read csv data online
 #https://catalog.data.gov/dataset/drug-poisoning-mortality-by-state-united-states
@@ -83,3 +90,11 @@ USsub<-USsub %>% mutate(CDlevel=ifelse(CDrate >30,">30",ifelse(CDrate >20,"20-30
 
 ######plot themes
 theme.bw<-scale_fill_grey() #Use grey scale
+
+####loading data
+load_data <- function() {
+  Sys.sleep(2)
+  hide("loading_page")
+  show("main_content")
+}
+
