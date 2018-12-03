@@ -19,9 +19,38 @@ if (!require("DT")){
   library("DT")
 }
 
-if (!require("Cairo")){
-  install.packages("Cairo")
-  library("Cairo")
+#to fit tree model
+if (!require("rpart")){
+  install.packages("rpart")
+  library("rpart")
+}
+if (!require("visNetwork")){
+  install.packages("visNetwork")
+  library("visNetwork")
+}
+if (!require("sparkline")){
+  install.packages("sparkline")
+  library("sparkline")
+}
+#cluster 
+if (!require("cluster")){
+  install.packages("cluster")
+  library("cluster")
+}
+#easy to extract and visualize the output of exploratory multivariate data analyses
+if (!require("FactoMineR")){
+  install.packages("FactoMineR")
+  library("FactoMineR")
+}
+if (!require("factoextra")){
+  install.packages("factoextra")
+  library("factoextra")
+}
+
+#prediction ribbon on regression line
+if (!require("ciTools")){
+  install.packages("ciTools")
+  library("ciTools")
 }
 ##global variables
 #read csv data online
@@ -45,37 +74,12 @@ usmap.meanCDR <- ggplot() +
   scale_fill_continuous(low = "thistle2", high = "darkred", guide="colorbar",name="Crude Death Rate")+
   theme(panel.grid = element_blank(),axis.title.x = element_blank(),axis.title.y = element_blank())
 
+#for tab2 us data with all categorical varibles classified
+#National data categorical variables classified
+USsub<-USdata %>% filter(Sex!="Both Sexes") %>% filter(`Race and Hispanic Origin`!="All Races-All Origins") %>% filter(`Age Group`!="All Ages") %>% select(c(2:8,17))
+colnames(USsub) <-c("Year","Sex","Age","Race","Deaths","Population","CDrate","UScr")
+USsub<-USsub %>% mutate(CDlevel=ifelse(CDrate >30,">30",ifelse(CDrate >20,"20-30",ifelse(CDrate >10,"10-20","0-10"))))%>% mutate_at(9, as.factor)
+
 
 ######plot themes
 theme.bw<-scale_fill_grey() #Use grey scale
-
-# # define a function which finds which state a point is in. This is the function 
-# # that takes input from click and give the name of the state being clicked
-# which_state <- function(mapData, long, lat) {
-#   # This function decide the state being clicked. 
-#   #
-#   # Args:
-#   #   mapData: The map data has a column "long" and a column "lat" to determine
-#   #       state borders. 
-#   #   long, lat: longitude and latitude of the clicked point. They are actually
-#   #       input$clickMap$x and input$clickMap$y assuming click = "clickMap".
-#   #
-#   # Returns: 
-#   #   The name of the state containing the point (long, lat).
-#   
-#   # calculate the difference in long and lat of the border with respect to this point
-#   mapData$long_diff <- mapData$long - long
-#   mapData$lat_diff <- mapData$lat - lat
-#   
-#   # only compare borders near the clicked point to save computing time
-#   mapData <- mapData[abs(mapData$long_diff) < 20 & abs(mapData$lat_diff) < 15, ]
-#   
-#   # calculate the angle between the vector from this clicked point to border and c(1, 0)
-#   vLong <- mapData$long_diff
-#   vLat <- mapData$lat_diff
-#   mapData$angle <- acos(vLong / sqrt(vLong^2 + vLat^2))
-#   
-#   # calculate range of the angle and select the state with largest range
-#   rangeAngle <- tapply(mapData$angle, mapData$State, function(x) max(x) - min(x))
-#   return(names(sort(rangeAngle, decreasing = TRUE))[1])
-# }

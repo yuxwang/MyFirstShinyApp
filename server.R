@@ -37,8 +37,14 @@ shinyServer(function(input, output, session) {
   ##About Data source
     #text output Data Source
     output$datasource<-renderText({
-     paste("This dataset describes drug poisoning deaths at the U.S. and state level by selected demographic characteristics, and includes age-adjusted death rates for drug poisoning.")
+     paste0("This dataset describes drug poisoning deaths at the U.S. and state level by selected demographic characteristics, and includes age-adjusted death rates for drug poisoning.","There are 18 columns and 2,862 rows in this dataset","\n","\n","Deaths are classified using the International Classification of Diseases, Tenth Revision (ICD–10). Drug-poisoning deaths are defined as having ICD–10 underlying cause-of-death codes X40–X44 (unintentional), X60–X64 (suicide), X85 (homicide), or Y10–Y14 (undetermined intent).","\n","\n","Crude death rate indicates the number of deaths occurring during the year, per 1,000 population estimated at midyear.","\n","\n","Age-adjusted death rates is deaths per 100,000 U.S. standard population for 2000.","\n","\n","Populations are postcensal estimates based on the 2010 U.S. census." )
      })
+    #data table
+    output$dataTable <- DT::renderDataTable({
+      DT::datatable(drugMtly,
+                    caption=paste0("Drug Poisioning Mortality Data"),
+                    options = list(scrollX = TRUE))
+    })
     #hyper links 
    datainfo.url<- a("Click here", href="https://catalog.data.gov/dataset/drug-poisoning-mortality-by-state-united-states")
    dataDownload.url<-a("Click here", href="https://data.cdc.gov/api/views/xbxb-epbu/rows.csv")
@@ -123,22 +129,124 @@ shinyServer(function(input, output, session) {
     },
     contentType = "image/png"
   )
-  #tab 2 bottom left plot
+  
+ 
+  #tab 2 middle plot
+  output$TreeModelDescp<-renderText({
+    paste0("Crude Death rate was reclassified into 4 levels:","0-10, 10-20, 20-30, >30" )
+  })
+  
+  gettressData <- reactive({newData <-USsub %>% select(CDlevel,input$TreeVariable)})
+  
+  output$CrudeDeathTree <- renderVisNetwork({
+    newData <- gettressData()
+    res <- rpart(CDlevel~., data= newData)
+    visTree(res, main = "Classification Tree Model for Crude Death Rate",edgesFontSize = 14, nodesFontSize = 16) 
+  })
+  
+  
+  #cluster data
+  selectedData <- reactive({
+    USsub[, c(input$xCluster, input$yCluster)]
+  })
+  #k-means cluster
+  kclusters <- reactive({
+    kmeans(selectedData(), input$numCluster)
+  })
+  output$KMeansCluster <- renderPlot({
+    palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
+              "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
+    par(mar = c(5.1, 4.1, 0, 1))
+    fviz_cluster(kclusters(), geom = "point",data =selectedData(),main = "")
+  })
+  #download k-means cluster
+  output$downPlotKCluster<-downloadHandler(
+    filename <- function() {
+      paste('KmeansCluster','png', sep = ".")
+    },
+    content <- function(file) {
+      png(file)
+      g<-fviz_cluster(kclusters(), geom = "point",data =selectedData())
+      print(g)
+      dev.off()
+    },
+    contentType = "image/png"
+  )
+  
+  #hierarchical clustering
+  ds<-reactive({dist(selectedData(), method = "euclidean")})
+  hcclusters<- reactive({
+    hclust(ds(), method = input$HirMethod )
+  })
+  hcgroup<-reactive({cutree(hcclusters(), k = input$numCluster)})
+  
+  output$HierarchicalCluster<- renderPlot({
+    palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
+              "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
+    par(mar = c(5.1, 4.1, 0, 1))
+    fviz_cluster(list(data = selectedData(), cluster = hcgroup()), geom = "point",main = "")
+  })
+ 
+  output$downPlotHirCluster<-downloadHandler(
+    filename <- function() {
+      paste('hierarchicalCluster','png', sep = ".")
+    },
+    content <- function(file) {
+      png(file)
+      g<-fviz_cluster(list(data = selectedData(), cluster = hcgroup()), geom = "point")
+      print(g)
+      dev.off()
+    },
+    contentType = "image/png"
+  )
+ 
+  
+  #tab 2 middle left plot
   getData2 <- reactive({
     newData <- USdata %>% filter(`Age Group` == input$ageGroup)
   })
+  
+  
   output$PopvsDeathAge <- renderPlot({
     #get filtered data
     newData <- getData2()
     g <- ggplot(newData, aes(x = Population, y = Deaths))+ geom_point(size = input$size)
+    #slm fit
+    slmfit<-lm(Deaths~Population,data=newData)
+    #quard fit
+    quardfit<-lm(Deaths~Population+I(Population^2),data=newData)
+    slmdata<-newData %>% add_pi(slmfit,names=c("lower","upper"))
+    quarddata<-newData %>% add_pi(quardfit,names=c("lower","upper"))
     #create plot
     if(input$regline){
-      g+geom_smooth(method='lm',formula=y~x) #add a regression line
-      
-    }else{
-      g
-    }
+      if(input$regMethod=="Basic Simple Linear Regression"){
+         
+           if(input$pred){
+             ggplot(slmdata, aes(x = Population, y = Deaths))+ 
+                geom_point(size = input$size)+
+                geom_smooth(method='lm',formula=y~x,fill="blue")+
+                geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.3,fill="red")+
+                ggtitle("Scatter Plot With 95% PI")
+                         }
+            else{
+             g+geom_smooth(method='lm',formula=y~x,fill=NA)}} #add a regression line
+         
+      else{ 
+         
+          if(input$pred){
+           ggplot(quarddata, aes(x = Population, y = Deaths))+ 
+           geom_point(size = input$size) +
+           geom_smooth(method='lm',formula=y~x+I(x^2),fill="blue")+
+           geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.3,fill="red")+
+           ggtitle("Scatter Plot With 95% PI")
+                        }
+          else{g+geom_smooth(method='lm',formula=y~x+I(x^2),fill=NA)}#add a regression line
+           }
+      }else{g}
   })
+  
+  
+  
   
   output$downPlotAge<-downloadHandler(
     filename <- function() {
@@ -148,8 +256,31 @@ shinyServer(function(input, output, session) {
       png(file)
       newData <- getData2()
       g <- ggplot(newData, aes(x = Population, y = Deaths))+ geom_point(size = input$size)
+      slmfit<-lm(Deaths~Population,data=newData)
+      #quard fit
+      quardfit<-lm(Deaths~Population+I(Population^2),data=newData)
+      slmdata<-newData %>% add_pi(slmfit,names=c("lower","upper"))
+      quarddata<-newData %>% add_pi(quardfit,names=c("lower","upper"))
       
-      ifelse(input$regline,print(g+geom_smooth(method='lm',formula=y~x)),print(g))
+      ifelse(input$regline,
+             
+             ifelse(input$regMethod=="Basic Simple Linear Regression",
+                       ifelse(input$pred, 
+                           print(ggplot(slmdata, aes(x = Population, y = Deaths))+ 
+                             geom_point(size = input$size)+
+                             geom_smooth(method='lm',formula=y~x,fill="blue")+
+                             geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.3,fill="red")+
+                             ggtitle("Scatter Plot With 95% PI")),
+                           print(g+geom_smooth(method='lm',formula=y~x,fill=NA))),
+                    ifelse(input$pred,
+                           print(ggplot(quarddata, aes(x = Population, y = Deaths))+ 
+                             geom_point(size = input$size) +
+                             geom_smooth(method='lm',formula=y~x+I(x^2),fill="blue")+
+                             geom_ribbon(aes(ymin=lower,ymax=upper),alpha=0.3,fill="red")+
+                             ggtitle("Scatter Plot With 95% PI")),
+                    print(g+geom_smooth(method='lm',formula=y~x+I(x^2),fill=NA)))),
+            
+              print(g))
       
       dev.off()
     },
@@ -219,32 +350,6 @@ shinyServer(function(input, output, session) {
      contentType = "image/png"
    )
    
-  
-  
-  # #top- CDR map
-  # plotMap <- ggplot(usstates, aes(x = long, y = lat, group = group)) + 
-  #   geom_polygon(fill = "white", color = "black")
-  # plottrend <- ggplot(StateData, aes(x = Year, y = 'Crude Death Rate',group=State),xlim=c(1998,2020)) +geom_line()  
-  #   
-  
- 
-  # output$USmap<-renderPlot({
-  #   
-  #   StateData.year<-getDataState() 
-  #   StateData.year$full <- StateData.year$State
-  #   total.year<- merge(usstates, StateData.year, by="full")
-  # 
-  #   #map
-  #   usmap.CDR.year <- 
-  #     ggplot() + 
-  #     geom_polygon(data=total.year,
-  #                  aes(x=long, y=lat, group = group,
-  #                      fill = factor(as.factor(total.year$'Crude Death Rate')),color="white"))+
-  #     theme(panel.grid = element_blank(),axis.title = element_blank(),
-  #           axis.text = element_blank(),legend.position="none")
-  #   
-  #   usmap.CDR.year
-  # })
 
   #Bottom table
   
