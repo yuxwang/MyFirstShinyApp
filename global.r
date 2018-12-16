@@ -62,7 +62,7 @@ if (!require("shinycssloaders")){
 ##global variables
 #read csv data online
 #https://catalog.data.gov/dataset/drug-poisoning-mortality-by-state-united-states
-drugMtly<-read_csv(file="https://data.cdc.gov/api/views/xbxb-epbu/rows.csv?accessType=DOWNLOAD")%>% tbl_df() %>% mutate_at(6:19,as.numeric)
+drugMtly<-read_csv(file="https://data.cdc.gov/api/views/xbxb-epbu/rows.csv?accessType=DOWNLOAD")%>% tbl_df() 
 
 #subdivide data
 #US data
